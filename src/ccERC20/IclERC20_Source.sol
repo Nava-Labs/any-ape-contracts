@@ -9,6 +9,21 @@ pragma solidity ^0.8.19;
  */
 interface IclERC20_Source {
     // =============================================================
+    //                            STRUCTS
+    // =============================================================
+
+    struct SupplyMetadata {
+        // Chainlink ChainId
+        uint64 chainId;
+        // active supply
+        uint256 activeSupply;
+        // deactive supply
+        uint256 deactiveSupply;
+        // last udate
+        uint256 lastUpdated;
+    }
+
+    // =============================================================
     //                           Transform
     // =============================================================
 
