@@ -52,7 +52,7 @@ interface IclERC20_Source {
     event Transform(address indexed initiator, uint256 indexed amount);
 
     /**
-     * @dev Emitted when ERC20 is burned
+     * @dev Emitted when ERC20 is unlocked
      */
     event Unlock(uint256 indexed action, address indexed to, uint256 indexed amount);
 
