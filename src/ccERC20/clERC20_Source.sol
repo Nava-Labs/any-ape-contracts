@@ -119,7 +119,7 @@ abstract contract clERC20_Source is Ownable, ERC20, CCIPReceiver, IclERC20_Sourc
             lastUpdated: block.timestamp
         });
 
-        bytes memory data = abi.encodeWithSignature("mint(address, amount)", msg.sender, amount);
+        bytes memory data = abi.encode("mint(address, amount)", msg.sender, amount);
 
         // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
         Client.EVM2AnyMessage memory evm2AnyMessage = Client.EVM2AnyMessage({
