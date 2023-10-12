@@ -8,31 +8,6 @@ pragma solidity ^0.8.19;
  * @dev Interface of clERC20_Source.
  */
 interface IclERC20_Source {
-    /**
-     * SYNC FAILED For ACTIVE_SUPPLY
-     */
-    error SyncFailedForActiveToken();
-
-    /**
-     * SYNC FAILED for DEACTIVE_SUPPLY
-     */
-    error SyncFailedForDeactiveToken();
-
-    // =============================================================
-    //                            Structs
-    // =============================================================
-
-    struct SupplyMetadata {
-        // Chainlink Chain Id.
-        uint64 chainId;
-        // Active Supply
-        uint256 activeSupply;
-        // Deactive Supply
-        uint256 deactiveSupply;
-        // last updated
-        uint256 lastUpdated;
-    }
-
     // =============================================================
     //                           Transform
     // =============================================================
