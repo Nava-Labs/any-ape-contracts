@@ -36,7 +36,7 @@ contract SimpleERC20Interaction is Script {
         vm.stopBroadcast();
     }
 
-    function approve(
+    function transfer(
         address token,
         address from,
         address to,
@@ -49,5 +49,19 @@ contract SimpleERC20Interaction is Script {
 
         vm.stopBroadcast();
     }
+
+    function mint(
+        address token,
+        address to,
+        uint256 amount
+    ) external {
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        vm.startBroadcast(deployerPrivateKey);
+
+        SimpleERC20(token).mint(to, amount);
+
+        vm.stopBroadcast();
+    }
+
 
 }
