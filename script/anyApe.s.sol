@@ -3,18 +3,21 @@ pragma solidity 0.8.19;
 
 import "forge-std/Script.sol";
 import "./CCIPHelper.sol";
-import {anyApe} from "../src/protocol/anyApe.sol";
+import {AnyApe_Source} from "../src/protocol/AnyApe_Source.sol";
 
-contract DeployAnyApe is Script, CCIPHelper {
+contract DeployAnyApe_Source is Script, CCIPHelper {
     function run(SupportedNetworks source) external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
 
         (address router, address link, , ) = getConfigFromNetwork(source);
 
-        anyApe _anyApe = new anyApe(
+        address APE = 0x294bb4c48F762DC0AFfe9DA653E9C6E1A4011452;
+
+        AnyApe_Source _anyApe = new AnyApe_Source(
             router,
-            link
+            link,
+            APE
         );
 
         console.log(
@@ -28,56 +31,54 @@ contract DeployAnyApe is Script, CCIPHelper {
     }
 }
 
-contract SendMessage is Script, CCIPHelper {
-    function run(
-        address payable sender,
-        SupportedNetworks destination,
-        address receiver,
-        address initiator,
-        string memory message,
-        anyApe.PayFeesIn payFeesIn
-    ) external {
-        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
-        vm.startBroadcast(deployerPrivateKey);
+// contract SendMessage is Script, CCIPHelper {
+//     function run(
+//         address payable sender,
+//         SupportedNetworks destination,
+//         address receiver,
+//         address initiator,
+//         string memory message
+//     ) external {
+//         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+//         vm.startBroadcast(deployerPrivateKey);
 
-        (, , , uint64 destinationChainId) = getConfigFromNetwork(destination);
+//         (, , , uint64 destinationChainId) = getConfigFromNetwork(destination);
 
-        bytes32 messageId = anyApe(sender).send(
-            destinationChainId,
-            receiver,
-            initiator,
-            message,
-            payFeesIn
-        );
+//         bytes32 messageId = AnyApe_Source(sender).send(
+//             destinationChainId,
+//             receiver,
+//             initiator,
+//             message
+//         );
 
-        console.log(
-            "You can now monitor the status of your Chainlink CCIP Message via https://ccip.chain.link using CCIP Message ID: "
-        );
-        console.logBytes32(messageId);
+//         console.log(
+//             "You can now monitor the status of your Chainlink CCIP Message via https://ccip.chain.link using CCIP Message ID: "
+//         );
+//         console.logBytes32(messageId);
 
-        vm.stopBroadcast();
-    }
-}
+//         vm.stopBroadcast();
+//     }
+// }
 
-contract GetLatestMessageDetails is Script, CCIPHelper {
-    function run(address payable _anyApe, address _initiator) external view {
-        (
-            bytes32 latestMessageId,
-            uint64 latestSourceChainSelector,
-            address latestSender,
-            address initiator,
-            string memory latestMessage
-        ) = anyApe(_anyApe).getLatestMessageDetails(_initiator);
+// contract GetLatestMessageDetails is Script, CCIPHelper {
+//     function run(address payable _anyApe, address _initiator) external view {
+//         (
+//             bytes32 latestMessageId,
+//             uint64 latestSourceChainSelector,
+//             address latestSender,
+//             address initiator,
+//             string memory latestMessage
+//         ) = AnyApe(_anyApe).getLatestMessageDetails(_initiator);
 
-        console.log("Latest Message ID: ");
-        console.logBytes32(latestMessageId);
-        console.log("Latest Source Chain Selector: ");
-        console.log(latestSourceChainSelector);
-        console.log("Latest Sender: ");
-        console.log(latestSender);
-        console.log("Initiator: ");
-        console.log(initiator);
-        console.log("Latest Message: ");
-        console.log(latestMessage);
-    }
-}
+//         console.log("Latest Message ID: ");
+//         console.logBytes32(latestMessageId);
+//         console.log("Latest Source Chain Selector: ");
+//         console.log(latestSourceChainSelector);
+//         console.log("Latest Sender: ");
+//         console.log(latestSender);
+//         console.log("Initiator: ");
+//         console.log(initiator);
+//         console.log("Latest Message: ");
+//         console.log(latestMessage);
+//     }
+// }
