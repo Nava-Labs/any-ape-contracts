@@ -93,7 +93,7 @@ contract AnyApe_Source is CCIPReceiver, Withdraw {
     
     function directBuy(address tokenAddress, uint256 tokenId) external {    
         ListingDetails memory detail = _listingDetails[tokenAddress][tokenId];
-        IERC20(tokenAddress).transferFrom(msg.sender, address(this), detail.price);
+        IERC20(APE).transferFrom(msg.sender, address(this), detail.price);
         IERC721(tokenAddress).safeTransferFrom(address(this), msg.sender, tokenId);
 
         _listingDetails[tokenAddress][tokenId] = ListingDetails ({
@@ -117,6 +117,8 @@ contract AnyApe_Source is CCIPReceiver, Withdraw {
             listedBy: address(0),
             price: 0
         });
+
+        IERC721(tokenAddress).safeTransferFrom(address(this), msg.sender, tokenId);
 
         bytes memory data = _encodeListingData(tokenAddress, tokenId);
         _send(DEST_CHAIN_SELECTOR, data);
@@ -173,5 +175,8 @@ contract AnyApe_Source is CCIPReceiver, Withdraw {
         emit MessageReceived(message.messageId, message.data);
     }
 
-    
+    function onERC721Received(address operator, address, uint256, bytes calldata) external view returns(bytes4) {
+        require(operator == address(this), "token must be staked over list method");
+        return bytes4(keccak256("onERC721Received(address,address,uint256,bytes)"));
+    }
 }

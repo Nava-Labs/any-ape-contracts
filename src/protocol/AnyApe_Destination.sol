@@ -64,9 +64,10 @@ contract AnyApe_Destination is CCIPReceiver, Withdraw {
         receiver = _receiver;
     }
    
+    // CCIP BUG: try to buy random NFT (0 value on struct)
     function crossChainBuy(address tokenAddress, uint256 tokenId) external {    
         ListingDetails memory detail = _listingDetails[tokenAddress][tokenId];
-        IERC20(tokenAddress).transferFrom(msg.sender, address(this), tokenId);
+        IERC20(APE).transferFrom(msg.sender, address(this), detail.price);
 
         _listingDetails[tokenAddress][tokenId] = ListingDetails ({
             listedBy: address(0),
@@ -77,6 +78,10 @@ contract AnyApe_Destination is CCIPReceiver, Withdraw {
         _send(SOURCE_CHAIN_SELECTOR, data);
 
         emit Buy(block.timestamp, BuyType.CrossChain, msg.sender, tokenAddress, tokenId, detail.price);
+    }
+
+    function checkListedNftDetailsOnSourceChain(address tokenAddress, uint256 tokenId) external view returns (ListingDetails memory) {
+        return _listingDetails[tokenAddress][tokenId];
     }
 
     function _encodeCrossChainData(address tokenAddress, uint256 tokenId, address buyer) internal view returns (bytes memory) {
