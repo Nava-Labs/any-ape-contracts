@@ -57,3 +57,14 @@ contract DeployBridgedApe is Script, CCIPHelper {
         vm.stopBroadcast();
     }
 }
+
+contract BridgedApeInteraction is Script, CCIPHelper {
+    function run(address payable ape, uint64 destChainSelector, address msgReceiver, address tokenReceiver, uint256 amount) external {
+        uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
+        vm.startBroadcast(deployerPrivateKey);
+
+        BridgedApe(ape).burnAndMintOrUnlock(destChainSelector, msgReceiver, tokenReceiver, amount);
+
+        vm.stopBroadcast();
+    }
+}
