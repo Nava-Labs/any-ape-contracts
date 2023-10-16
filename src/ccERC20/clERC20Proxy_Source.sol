@@ -60,12 +60,12 @@ contract clERC20Proxy_Source is CCIPReceiver, TrustedSender {
 
     receive() external payable {}
 
-    function lockAndMint(uint64 destinationChainSelector, address msgReceiver, address tokenReceiver, uint256 amount) external virtual {
+    function lockAndMint(uint64 destinationChainSelector, address messageReceiver, address tokenReceiver, uint256 amount) external virtual {
         // lock the real token
         IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount);
 
         // ccip send for triggering mint in dest chain
-        _sendMintMessage(destinationChainSelector, msgReceiver, tokenReceiver, amount);
+        _sendMintMessage(destinationChainSelector, messageReceiver, tokenReceiver, amount);
 
         emit Lock(msg.sender, amount);
     }
@@ -82,13 +82,13 @@ contract clERC20Proxy_Source is CCIPReceiver, TrustedSender {
     /// @notice Sends data to receiver on the destination chain.
     /// @dev Assumes your contract has sufficient $LINK for covering the fees
     /// @param destinationChainSelector The identifier (aka selector) for the destination blockchain.
-    /// @param msgReceiver The address of the message recipient on the destination blockchain.
+    /// @param messageReceiver The address of the message recipient on the destination blockchain.
     /// @param tokenReceiver The address of the token recipient on the destination blockchain.
     /// @param amount token amount that want to be minted in destination blockchain.
     /// @return messageId The ID of the message that was sent.
     function _sendMintMessage(
         uint64 destinationChainSelector,
-        address msgReceiver,
+        address messageReceiver,
         address tokenReceiver,
         uint256 amount
     ) internal returns (bytes32 messageId) {
@@ -97,7 +97,7 @@ contract clERC20Proxy_Source is CCIPReceiver, TrustedSender {
 
         // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
         Client.EVM2AnyMessage memory evm2AnyMessage = Client.EVM2AnyMessage({
-            receiver: abi.encode(msgReceiver), // ABI-encoded msg receiver address
+            receiver: abi.encode(messageReceiver), // ABI-encoded msg receiver address
             data: data,
             tokenAmounts: new Client.EVMTokenAmount[](0),
             extraArgs: "",
@@ -122,7 +122,7 @@ contract clERC20Proxy_Source is CCIPReceiver, TrustedSender {
         emit MessageSent(
             messageId,
             destinationChainSelector,
-            msgReceiver,
+            messageReceiver,
             data,
             fees
         );

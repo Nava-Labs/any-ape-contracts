@@ -52,12 +52,12 @@ abstract contract clERC20Proxy_Destination is ERC20, CCIPReceiver, TrustedSender
 
     receive() external payable {}
 
-    function burnAndMintOrUnlock(uint64 destinationChainSelector, address msgReceiver, address tokenReceiver, uint256 amount) external virtual {
+    function burnAndMintOrUnlock(uint64 destinationChainSelector, address messageReceiver, address tokenReceiver, uint256 amount) external virtual {
         // lock the real token
         _burn(msg.sender, amount);
 
         // ccip send for triggering mint in dest chain
-        _sendMintOrUnlockMessage(destinationChainSelector, msgReceiver, tokenReceiver, amount);
+        _sendMintOrUnlockMessage(destinationChainSelector, messageReceiver, tokenReceiver, amount);
 
         emit Unlock(msg.sender, amount);
     }
@@ -74,13 +74,13 @@ abstract contract clERC20Proxy_Destination is ERC20, CCIPReceiver, TrustedSender
     /// @notice Sends data to receiver on the destination chain.
     /// @dev Assumes your contract has sufficient $LINK for covering the fees
     /// @param destinationChainSelector The identifier (aka selector) for the destination blockchain.
-    /// @param msgReceiver The address of the message recipient on the destination blockchain.
+    /// @param messageReceiver The address of the message recipient on the destination blockchain.
     /// @param tokenReceiver The address of the token recipient on the destination blockchain.
     /// @param amount token amount that want to be minted in destination blockchain.
     /// @return messageId The ID of the message that was sent.
     function _sendMintOrUnlockMessage(
         uint64 destinationChainSelector,
-        address msgReceiver,
+        address messageReceiver,
         address tokenReceiver,
         uint256 amount
     ) internal returns (bytes32 messageId) {
@@ -89,7 +89,7 @@ abstract contract clERC20Proxy_Destination is ERC20, CCIPReceiver, TrustedSender
 
         // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
         Client.EVM2AnyMessage memory evm2AnyMessage = Client.EVM2AnyMessage({
-            receiver: abi.encode(msgReceiver), // ABI-encoded receiver address
+            receiver: abi.encode(messageReceiver), // ABI-encoded receiver address
             data: data,
             tokenAmounts: new Client.EVMTokenAmount[](0),
             extraArgs: "",
@@ -114,7 +114,7 @@ abstract contract clERC20Proxy_Destination is ERC20, CCIPReceiver, TrustedSender
         emit MessageSent(
             messageId,
             destinationChainSelector,
-            msgReceiver,
+            messageReceiver,
             data,
             fees
         );
@@ -155,7 +155,7 @@ abstract contract clERC20Proxy_Destination is ERC20, CCIPReceiver, TrustedSender
         return abi.encode(tokenReceiver, amount);
     }
 
-    function _decodeMintMessage(bytes memory message) internal pure returns (address receiver, uint256 amount) {
-        (receiver, amount) = abi.decode(message, (address, uint256));
+    function _decodeMintMessage(bytes memory message) internal pure returns (address tokenReceiver, uint256 amount) {
+        (tokenReceiver, amount) = abi.decode(message, (address, uint256));
     }
 }
