@@ -63,7 +63,7 @@ contract AnyApe_SourceInteraction is Script, CCIPHelper {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
 
-        AnyApe_Source(anyApe_source).updateMsgReceiverAddress(destReceiver);
+        AnyApe_Source(anyApe_source).updateMessageReceiverAddress(destReceiver);
         vm.stopBroadcast();
     }
 
@@ -106,19 +106,19 @@ contract AnyApe_SourceInteraction is Script, CCIPHelper {
 }
 
 contract AnyApe_DestinationInteraction is Script, CCIPHelper {
-    function updateReceiver(address payable anyApe_dest, address sourceReceiver) external {
+    function updateReceiver(address payable anyApe_dest, address anyApeMessageReceiver, address apeTokenMessageReceiver) external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
 
-        AnyApe_Destination(anyApe_dest).updateMsgReceiverAddress(sourceReceiver);
+        AnyApe_Destination(anyApe_dest).updateMessageReceiverAddress(anyApeMessageReceiver, apeTokenMessageReceiver);
         vm.stopBroadcast();
     }
 
-    function ccBuy(address payable anyApe_dest, address tokenAddress, uint256 tokenId) external {
+    function ccSale(address payable anyApe_dest, address tokenAddress, uint256 tokenId) external {
         uint256 deployerPrivateKey = vm.envUint("PRIVATE_KEY");
         vm.startBroadcast(deployerPrivateKey);
 
-        AnyApe_Destination(anyApe_dest).crossChainBuy(tokenAddress, tokenId);
+        AnyApe_Destination(anyApe_dest).crossChainSale(tokenAddress, tokenId);
         vm.stopBroadcast();
     }
 
