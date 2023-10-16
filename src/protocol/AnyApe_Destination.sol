@@ -11,12 +11,17 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 error Unauthorized();
 
+interface IBridgedApe {
+    function burnAndMintOrUnlock(uint64 destinationChainSelector, address messageReceiver, address tokenReceiver, uint256 amount) external;
+}
+
 contract AnyApe_Destination is CCIPReceiver, Withdraw {
 
     uint64 constant SOURCE_CHAIN_SELECTOR = 12532609583862916517; // mumbai
     uint64 constant DEST_CHAIN_SELECTOR = 14767482510784806043; // fuji
 
-    address public receiver;
+    address public anyApeMessageReceiver;
+    address public apeTokenMessageReceiver;
 
     address immutable i_router;
     address immutable i_link;
@@ -62,22 +67,24 @@ contract AnyApe_Destination is CCIPReceiver, Withdraw {
 
     receive() external payable {}   
 
-    function updateMsgReceiverAddress(address _receiver) external onlyOwner {
-        receiver = _receiver;
+    function updateMessageReceiverAddress(address _anyApeMessageReceiver, address _apeTokenMessageReceiver) external onlyOwner {
+        anyApeMessageReceiver = _anyApeMessageReceiver;
+        apeTokenMessageReceiver = _apeTokenMessageReceiver;
     }
    
-    // CCIP BUG: try to buy random NFT (0 value on struct)
-    function crossChainBuy(address tokenAddress, uint256 tokenId) external {    
+    function crossChainSale(address tokenAddress, uint256 tokenId) external {    
         ListingDetails memory detail = _listingDetails[tokenAddress][tokenId];
-        IERC20(APE).transferFrom(msg.sender, detail.listedBy, detail.price);
+        IERC20(APE).transferFrom(msg.sender, address(this), detail.price);
+
+        IBridgedApe(APE).burnAndMintOrUnlock(SOURCE_CHAIN_SELECTOR, apeTokenMessageReceiver, detail.listedBy, detail.price);
 
         _listingDetails[tokenAddress][tokenId] = ListingDetails ({
             listedBy: address(0),
             price: 0
         });
 
-        bytes memory data = _encodeCrossChainData(tokenAddress, tokenId, msg.sender);
-        _send(SOURCE_CHAIN_SELECTOR, data);
+        bytes memory data = _encodeCrossChainSaleData(tokenAddress, tokenId, msg.sender);
+        _sendCrossChainSaleMessage(SOURCE_CHAIN_SELECTOR, data);
 
         emit Sale(SaleType.CrossChain, tokenAddress, msg.sender, detail.listedBy, tokenId, detail.price);
     }
@@ -86,7 +93,7 @@ contract AnyApe_Destination is CCIPReceiver, Withdraw {
         return _listingDetails[tokenAddress][tokenId];
     }
 
-    function _encodeCrossChainData(address tokenAddress, uint256 tokenId, address _newOwner) internal view returns (bytes memory) {
+    function _encodeCrossChainSaleData(address tokenAddress, uint256 tokenId, address _newOwner) internal view returns (bytes memory) {
         CrossChainSale memory ccSale = CrossChainSale ({
             newOwner: _newOwner
         });
@@ -101,12 +108,12 @@ contract AnyApe_Destination is CCIPReceiver, Withdraw {
         (tokenAddress, tokenId, detail) = abi.decode(data, (address, uint256, ListingDetails));
     }
 
-    function _send(
+    function _sendCrossChainSaleMessage(
         uint64 destinationChainSelector,
         bytes memory data
     ) internal returns (bytes32 messageId) {
         Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
-            receiver: abi.encode(receiver),
+            receiver: abi.encode(anyApeMessageReceiver),
             data: data,
             tokenAmounts: new Client.EVMTokenAmount[](0),
             extraArgs: "",
