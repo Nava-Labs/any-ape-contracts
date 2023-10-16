@@ -22,6 +22,7 @@ contract AnyApe_Destination is CCIPReceiver, Withdraw {
     address immutable i_link;
     address immutable public APE;
 
+    // SourceChain will be done through AnyApe_Source contract
     enum BuyType {
         SourceChain,
         CrossChain
@@ -35,14 +36,14 @@ contract AnyApe_Destination is CCIPReceiver, Withdraw {
     mapping(address => mapping(uint256 => ListingDetails)) private _listingDetails; // tokenAddress => tokenId => ListingDetails
 
     struct CrossChainBuy {
-        address buyer;
+        address newOwner;
     }
 
     event Buy(
-        uint256 indexed timestamp, 
-        BuyType indexed buyType,
-        address indexed userAddress, 
-        address tokenAddress, 
+        BuyType indexed saleType,
+        address indexed tokenAddress, 
+        address indexed newOwner, 
+        address prevOwner, 
         uint256 tokenId,
         uint256 price
     );
@@ -77,16 +78,16 @@ contract AnyApe_Destination is CCIPReceiver, Withdraw {
         bytes memory data = _encodeCrossChainData(tokenAddress, tokenId, msg.sender);
         _send(SOURCE_CHAIN_SELECTOR, data);
 
-        emit Buy(block.timestamp, BuyType.CrossChain, msg.sender, tokenAddress, tokenId, detail.price);
+        emit Buy(BuyType.CrossChain, tokenAddress, msg.sender, detail.listedBy, tokenId, detail.price);
     }
 
     function checkListedNftDetailsOnSourceChain(address tokenAddress, uint256 tokenId) external view returns (ListingDetails memory) {
         return _listingDetails[tokenAddress][tokenId];
     }
 
-    function _encodeCrossChainData(address tokenAddress, uint256 tokenId, address buyer) internal view returns (bytes memory) {
+    function _encodeCrossChainData(address tokenAddress, uint256 tokenId, address _newOwner) internal view returns (bytes memory) {
         CrossChainBuy memory ccBuy = CrossChainBuy ({
-            buyer: buyer
+            newOwner: _newOwner
         });
         return abi.encode(tokenAddress, tokenId, _listingDetails[tokenAddress][tokenId], ccBuy);
     }

@@ -22,6 +22,7 @@ contract AnyApe_Source is CCIPReceiver, Withdraw {
     address immutable i_link;
     address immutable public APE;
 
+    // CrossChain will be done through AnyApe_Destination contracts
     enum BuyType {
         SourceChain,
         CrossChain
@@ -34,28 +35,26 @@ contract AnyApe_Source is CCIPReceiver, Withdraw {
     mapping(address => mapping(uint256 => ListingDetails)) private _listingDetails; // tokenAddress => tokenId => ListingDetails
 
     struct CrossChainBuy {
-        address buyer;
+        address newOwner;
     }
 
     event Listing(
-        uint256 indexed timestamp, 
-        address indexed userAddress, 
+        address indexed ownerAddress, 
         address indexed tokenAddress, 
         uint256 tokenId,
         uint256 price
     );
 
     event Buy(
-        uint256 indexed timestamp, 
-        BuyType indexed buyType,
-        address indexed userAddress, 
-        address tokenAddress, 
+        BuyType indexed saleType,
+        address indexed tokenAddress, 
+        address indexed newOwner, 
+        address prevOwner, 
         uint256 tokenId,
         uint256 price
     );
 
     event Cancel(
-        uint256 indexed timestamp, 
         address indexed userAddress, 
         address tokenAddress, 
         uint256 tokenId
@@ -88,7 +87,7 @@ contract AnyApe_Source is CCIPReceiver, Withdraw {
         bytes memory data = _encodeListingData(tokenAddress, tokenId);
         _send(DEST_CHAIN_SELECTOR, data);
 
-        emit Listing(block.timestamp, msg.sender, tokenAddress, tokenId, _price);
+        emit Listing(msg.sender, tokenAddress, tokenId, _price);
     }
     
     function directBuy(address tokenAddress, uint256 tokenId) external {    
@@ -104,7 +103,7 @@ contract AnyApe_Source is CCIPReceiver, Withdraw {
         bytes memory data = _encodeListingData(tokenAddress, tokenId);
         _send(DEST_CHAIN_SELECTOR, data);
 
-        emit Buy(block.timestamp, BuyType.SourceChain, msg.sender, tokenAddress, tokenId, detail.price);
+        emit Buy(BuyType.SourceChain, tokenAddress, msg.sender, detail.listedBy, tokenId, detail.price);
     }
 
     function cancelListing(address tokenAddress, uint256 tokenId) external {
@@ -123,7 +122,7 @@ contract AnyApe_Source is CCIPReceiver, Withdraw {
         bytes memory data = _encodeListingData(tokenAddress, tokenId);
         _send(DEST_CHAIN_SELECTOR, data);
 
-        emit Cancel(block.timestamp, msg.sender, tokenAddress, tokenId);
+        emit Cancel(msg.sender, tokenAddress, tokenId);
     }
 
     function checkListedNftDetails(address tokenAddress, uint256 tokenId) external view returns (ListingDetails memory) {
@@ -169,9 +168,9 @@ contract AnyApe_Source is CCIPReceiver, Withdraw {
         (address tokenAddress, uint256 tokenId, ListingDetails memory detail, CrossChainBuy memory ccBuy) = _decodeCrossChainBuy(message.data);
 
         _listingDetails[tokenAddress][tokenId] = detail;
-        IERC721(tokenAddress).safeTransferFrom(address(this), ccBuy.buyer, tokenId);
+        IERC721(tokenAddress).safeTransferFrom(address(this), ccBuy.newOwner, tokenId);
             
-        emit Buy(block.timestamp, BuyType.CrossChain, ccBuy.buyer, tokenAddress, tokenId, detail.price);
+        emit Buy(BuyType.SourceChain, tokenAddress, ccBuy.newOwner, detail.listedBy, tokenId, detail.price);
         emit MessageReceived(message.messageId, message.data);
     }
 
