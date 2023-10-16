@@ -22,9 +22,9 @@ contract AnyApe_Destination is CCIPReceiver, Withdraw {
     address immutable i_link;
     address immutable public APE;
 
-    // SourceChain will be done through AnyApe_Source contract
-    enum BuyType {
-        SourceChain,
+    // Native will be done through AnyApe_Source contract
+    enum SaleType {
+        Native,
         CrossChain
     }
 
@@ -35,12 +35,12 @@ contract AnyApe_Destination is CCIPReceiver, Withdraw {
     // data contains should be eq to source chain
     mapping(address => mapping(uint256 => ListingDetails)) private _listingDetails; // tokenAddress => tokenId => ListingDetails
 
-    struct CrossChainBuy {
+    struct CrossChainSale {
         address newOwner;
     }
 
-    event Buy(
-        BuyType indexed saleType,
+    event Sale(
+        SaleType indexed saleType,
         address indexed tokenAddress, 
         address indexed newOwner, 
         address prevOwner, 
@@ -55,8 +55,9 @@ contract AnyApe_Destination is CCIPReceiver, Withdraw {
     constructor(address router, address link, address ape) CCIPReceiver(router) {
         i_router = router;
         i_link = link;
-        LinkTokenInterface(i_link).approve(i_router, type(uint256).max);
         APE = ape;
+
+        LinkTokenInterface(i_link).approve(i_router, type(uint256).max);
     }
 
     receive() external payable {}   
@@ -68,7 +69,7 @@ contract AnyApe_Destination is CCIPReceiver, Withdraw {
     // CCIP BUG: try to buy random NFT (0 value on struct)
     function crossChainBuy(address tokenAddress, uint256 tokenId) external {    
         ListingDetails memory detail = _listingDetails[tokenAddress][tokenId];
-        IERC20(APE).transferFrom(msg.sender, address(this), detail.price);
+        IERC20(APE).transferFrom(msg.sender, detail.listedBy, detail.price);
 
         _listingDetails[tokenAddress][tokenId] = ListingDetails ({
             listedBy: address(0),
@@ -78,7 +79,7 @@ contract AnyApe_Destination is CCIPReceiver, Withdraw {
         bytes memory data = _encodeCrossChainData(tokenAddress, tokenId, msg.sender);
         _send(SOURCE_CHAIN_SELECTOR, data);
 
-        emit Buy(BuyType.CrossChain, tokenAddress, msg.sender, detail.listedBy, tokenId, detail.price);
+        emit Sale(SaleType.CrossChain, tokenAddress, msg.sender, detail.listedBy, tokenId, detail.price);
     }
 
     function checkListedNftDetailsOnSourceChain(address tokenAddress, uint256 tokenId) external view returns (ListingDetails memory) {
@@ -86,10 +87,10 @@ contract AnyApe_Destination is CCIPReceiver, Withdraw {
     }
 
     function _encodeCrossChainData(address tokenAddress, uint256 tokenId, address _newOwner) internal view returns (bytes memory) {
-        CrossChainBuy memory ccBuy = CrossChainBuy ({
+        CrossChainSale memory ccSale = CrossChainSale ({
             newOwner: _newOwner
         });
-        return abi.encode(tokenAddress, tokenId, _listingDetails[tokenAddress][tokenId], ccBuy);
+        return abi.encode(tokenAddress, tokenId, _listingDetails[tokenAddress][tokenId], ccSale);
     }
 
     function _decodeListingData(bytes memory data) internal pure returns (

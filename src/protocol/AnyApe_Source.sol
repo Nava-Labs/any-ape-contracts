@@ -23,8 +23,8 @@ contract AnyApe_Source is CCIPReceiver, Withdraw {
     address immutable public APE;
 
     // CrossChain will be done through AnyApe_Destination contracts
-    enum BuyType {
-        SourceChain,
+    enum SaleType {
+        Native,
         CrossChain
     }
 
@@ -34,21 +34,21 @@ contract AnyApe_Source is CCIPReceiver, Withdraw {
     }
     mapping(address => mapping(uint256 => ListingDetails)) private _listingDetails; // tokenAddress => tokenId => ListingDetails
 
-    struct CrossChainBuy {
+    struct CrossChainSale {
         address newOwner;
     }
 
     event Listing(
         address indexed ownerAddress, 
-        address indexed tokenAddress, 
+        address indexed tokenAddress,
         uint256 tokenId,
         uint256 price
     );
 
-    event Buy(
-        BuyType indexed saleType,
+    event Sale(
+        SaleType indexed saleType,
         address indexed tokenAddress, 
-        address indexed newOwner, 
+        address indexed newOwner,
         address prevOwner, 
         uint256 tokenId,
         uint256 price
@@ -67,8 +67,9 @@ contract AnyApe_Source is CCIPReceiver, Withdraw {
     constructor(address router, address link, address ape) CCIPReceiver(router) {
         i_router = router;
         i_link = link;
-        LinkTokenInterface(i_link).approve(i_router, type(uint256).max);
         APE = ape;
+
+        LinkTokenInterface(i_link).approve(i_router, type(uint256).max);
     }
 
     receive() external payable {}   
@@ -79,6 +80,7 @@ contract AnyApe_Source is CCIPReceiver, Withdraw {
 
     function listing(address tokenAddress, uint256 tokenId, uint256 _price) external {
         IERC721(tokenAddress).safeTransferFrom(msg.sender, address(this), tokenId);
+
         _listingDetails[tokenAddress][tokenId] = ListingDetails ({
             listedBy: msg.sender,
             price: _price
@@ -92,7 +94,7 @@ contract AnyApe_Source is CCIPReceiver, Withdraw {
     
     function directBuy(address tokenAddress, uint256 tokenId) external {    
         ListingDetails memory detail = _listingDetails[tokenAddress][tokenId];
-        IERC20(APE).transferFrom(msg.sender, address(this), detail.price);
+        IERC20(APE).transferFrom(msg.sender, detail.listedBy, detail.price);
         IERC721(tokenAddress).safeTransferFrom(address(this), msg.sender, tokenId);
 
         _listingDetails[tokenAddress][tokenId] = ListingDetails ({
@@ -103,9 +105,9 @@ contract AnyApe_Source is CCIPReceiver, Withdraw {
         bytes memory data = _encodeListingData(tokenAddress, tokenId);
         _send(DEST_CHAIN_SELECTOR, data);
 
-        emit Buy(BuyType.SourceChain, tokenAddress, msg.sender, detail.listedBy, tokenId, detail.price);
+        emit Sale(SaleType.Native, tokenAddress, msg.sender, detail.listedBy, tokenId, detail.price);
     }
-
+        
     function cancelListing(address tokenAddress, uint256 tokenId) external {
         address _listedBy = _listingDetails[tokenAddress][tokenId].listedBy;
         if (msg.sender != _listedBy) {
@@ -137,9 +139,9 @@ contract AnyApe_Source is CCIPReceiver, Withdraw {
         address tokenAddress, 
         uint256 tokenId,
         ListingDetails memory detail,
-        CrossChainBuy memory ccBuy) 
+        CrossChainSale memory ccSale) 
     {
-        (tokenAddress, tokenId, detail, ccBuy) = abi.decode(data, (address, uint256, ListingDetails, CrossChainBuy));
+        (tokenAddress, tokenId, detail, ccSale) = abi.decode(data, (address, uint256, ListingDetails, CrossChainSale));
     }
 
     function _send(
@@ -165,12 +167,12 @@ contract AnyApe_Source is CCIPReceiver, Withdraw {
     function _ccipReceive(
         Client.Any2EVMMessage memory message
     ) internal override {
-        (address tokenAddress, uint256 tokenId, ListingDetails memory detail, CrossChainBuy memory ccBuy) = _decodeCrossChainBuy(message.data);
+        (address tokenAddress, uint256 tokenId, ListingDetails memory detail, CrossChainSale memory ccSale) = _decodeCrossChainBuy(message.data);
 
         _listingDetails[tokenAddress][tokenId] = detail;
-        IERC721(tokenAddress).safeTransferFrom(address(this), ccBuy.newOwner, tokenId);
+        IERC721(tokenAddress).safeTransferFrom(address(this), ccSale.newOwner, tokenId);
             
-        emit Buy(BuyType.SourceChain, tokenAddress, ccBuy.newOwner, detail.listedBy, tokenId, detail.price);
+        emit Sale(SaleType.CrossChain, tokenAddress, ccSale.newOwner, detail.listedBy, tokenId, detail.price);
         emit MessageReceived(message.messageId, message.data);
     }
 
