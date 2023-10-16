@@ -90,9 +90,6 @@ contract clERC20Proxy_Source is CCIPReceiver, TrustedSender {
         address receiver,
         uint256 amount
     ) internal returns (bytes32 messageId) {
-        // lock the real token
-        IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount);
-
         // ABI-encoded message for minting in destination chain
         bytes memory data = _encodeMintMessage(receiver, amount); 
 
@@ -151,7 +148,7 @@ contract clERC20Proxy_Source is CCIPReceiver, TrustedSender {
 
         IERC20(tokenAddress).transferFrom(address(this), receiver, amount);
 
-        emit Unlock(msg.sender, amount);
+        emit Unlock(receiver, amount);
         emit MessageReceived(
             messageId,
             sourceChainSelector,
