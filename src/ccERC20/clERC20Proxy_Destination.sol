@@ -20,12 +20,10 @@ abstract contract clERC20Proxy_Destination is ERC20, CCIPReceiver, TrustedSender
 
     address immutable i_link;
 
-    address immutable public tokenAddress; 
-
     /**
      * @dev Emitted when ERC20 is unlocked or minted
      */
-    event Unlock(address indexed initiator, uint256 indexed amount);
+    event Unlock(address indexed to, uint256 indexed amount);
 
     // =============================================================
     //                            CCIP
@@ -48,19 +46,18 @@ abstract contract clERC20Proxy_Destination is ERC20, CCIPReceiver, TrustedSender
         bytes data // The message that was received.
     );
 
-    constructor(address _tokenAddress, address _router, address link) CCIPReceiver(_router) {
-        tokenAddress = _tokenAddress;
+    constructor(address _router, address link) CCIPReceiver(_router) {
         i_link = link;    
     }
 
     receive() external payable {}
 
-    function burnAndMintOrUnlock(uint64 destinationChainSelector, address receiver, uint256 amount) external virtual {
+    function burnAndMintOrUnlock(uint64 destinationChainSelector, address msgReceiver, address tokenReceiver, uint256 amount) external virtual {
         // lock the real token
         _burn(msg.sender, amount);
 
         // ccip send for triggering mint in dest chain
-        _sendMintOrUnlockMessage(destinationChainSelector, receiver, amount);
+        _sendMintOrUnlockMessage(destinationChainSelector, msgReceiver, tokenReceiver, amount);
 
         emit Unlock(msg.sender, amount);
     }
@@ -77,23 +74,22 @@ abstract contract clERC20Proxy_Destination is ERC20, CCIPReceiver, TrustedSender
     /// @notice Sends data to receiver on the destination chain.
     /// @dev Assumes your contract has sufficient $LINK for covering the fees
     /// @param destinationChainSelector The identifier (aka selector) for the destination blockchain.
-    /// @param receiver The address of the recipient on the destination blockchain.
+    /// @param msgReceiver The address of the message recipient on the destination blockchain.
+    /// @param tokenReceiver The address of the token recipient on the destination blockchain.
     /// @param amount token amount that want to be minted in destination blockchain.
     /// @return messageId The ID of the message that was sent.
     function _sendMintOrUnlockMessage(
         uint64 destinationChainSelector,
-        address receiver,
+        address msgReceiver,
+        address tokenReceiver,
         uint256 amount
     ) internal returns (bytes32 messageId) {
-        // lock the real token
-        IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount);
-
         // ABI-encoded message for minting in destination chain
-        bytes memory data = _encodeMintOrUnlockMessage(receiver, amount); 
+        bytes memory data = _encodeMintOrUnlockMessage(tokenReceiver, amount); 
 
         // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
         Client.EVM2AnyMessage memory evm2AnyMessage = Client.EVM2AnyMessage({
-            receiver: abi.encode(receiver), // ABI-encoded receiver address
+            receiver: abi.encode(msgReceiver), // ABI-encoded receiver address
             data: data,
             tokenAmounts: new Client.EVMTokenAmount[](0),
             extraArgs: "",
@@ -118,7 +114,7 @@ abstract contract clERC20Proxy_Destination is ERC20, CCIPReceiver, TrustedSender
         emit MessageSent(
             messageId,
             destinationChainSelector,
-            receiver,
+            msgReceiver,
             data,
             fees
         );
@@ -142,11 +138,11 @@ abstract contract clERC20Proxy_Destination is ERC20, CCIPReceiver, TrustedSender
             revert UnauthorizedChainSelector();
         }
 
-        (address receiver, uint256 amount) = _decodeMintMessage(any2EvmMessage.data);
+        (address tokenReceiver, uint256 amount) = _decodeMintMessage(any2EvmMessage.data);
 
-        _mint(receiver, amount);
+        _mint(tokenReceiver, amount);
 
-        emit Unlock(receiver, amount);
+        emit Unlock(tokenReceiver, amount);
         emit MessageReceived(
             messageId,
             sourceChainSelector,
@@ -155,8 +151,8 @@ abstract contract clERC20Proxy_Destination is ERC20, CCIPReceiver, TrustedSender
         );
     }
 
-    function _encodeMintOrUnlockMessage(address receiver, uint256 amount) internal pure returns (bytes memory) {
-        return abi.encode(receiver, amount);
+    function _encodeMintOrUnlockMessage(address tokenReceiver, uint256 amount) internal pure returns (bytes memory) {
+        return abi.encode(tokenReceiver, amount);
     }
 
     function _decodeMintMessage(bytes memory message) internal pure returns (address receiver, uint256 amount) {

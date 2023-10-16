@@ -30,7 +30,7 @@ contract clERC20Proxy_Source is CCIPReceiver, TrustedSender {
     /**
      * @dev Emitted when ERC20 is unlocked
      */
-    event Unlock(address indexed initiator, uint256 indexed amount);
+    event Unlock(address indexed to, uint256 indexed amount);
 
     // =============================================================
     //                            CCIP
@@ -60,12 +60,12 @@ contract clERC20Proxy_Source is CCIPReceiver, TrustedSender {
 
     receive() external payable {}
 
-    function lockAndMint(uint64 destinationChainSelector, address receiver, uint256 amount) external virtual {
+    function lockAndMint(uint64 destinationChainSelector, address msgReceiver, address tokenReceiver, uint256 amount) external virtual {
         // lock the real token
         IERC20(tokenAddress).transferFrom(msg.sender, address(this), amount);
 
         // ccip send for triggering mint in dest chain
-        _sendMintMessage(destinationChainSelector, receiver, amount);
+        _sendMintMessage(destinationChainSelector, msgReceiver, tokenReceiver, amount);
 
         emit Lock(msg.sender, amount);
     }
@@ -82,20 +82,22 @@ contract clERC20Proxy_Source is CCIPReceiver, TrustedSender {
     /// @notice Sends data to receiver on the destination chain.
     /// @dev Assumes your contract has sufficient $LINK for covering the fees
     /// @param destinationChainSelector The identifier (aka selector) for the destination blockchain.
-    /// @param receiver The address of the recipient on the destination blockchain.
+    /// @param msgReceiver The address of the message recipient on the destination blockchain.
+    /// @param tokenReceiver The address of the token recipient on the destination blockchain.
     /// @param amount token amount that want to be minted in destination blockchain.
     /// @return messageId The ID of the message that was sent.
     function _sendMintMessage(
         uint64 destinationChainSelector,
-        address receiver,
+        address msgReceiver,
+        address tokenReceiver,
         uint256 amount
     ) internal returns (bytes32 messageId) {
         // ABI-encoded message for minting in destination chain
-        bytes memory data = _encodeMintMessage(receiver, amount); 
+        bytes memory data = _encodeMintMessage(tokenReceiver, amount); 
 
         // Create an EVM2AnyMessage struct in memory with necessary information for sending a cross-chain message
         Client.EVM2AnyMessage memory evm2AnyMessage = Client.EVM2AnyMessage({
-            receiver: abi.encode(receiver), // ABI-encoded receiver address
+            receiver: abi.encode(msgReceiver), // ABI-encoded msg receiver address
             data: data,
             tokenAmounts: new Client.EVMTokenAmount[](0),
             extraArgs: "",
@@ -120,7 +122,7 @@ contract clERC20Proxy_Source is CCIPReceiver, TrustedSender {
         emit MessageSent(
             messageId,
             destinationChainSelector,
-            receiver,
+            msgReceiver,
             data,
             fees
         );
@@ -144,11 +146,11 @@ contract clERC20Proxy_Source is CCIPReceiver, TrustedSender {
             revert UnauthorizedChainSelector();
         }
 
-        (address receiver, uint256 amount) = _decodeUnlockMessage(any2EvmMessage.data);
+        (address tokenReceiver, uint256 amount) = _decodeUnlockMessage(any2EvmMessage.data);
 
-        IERC20(tokenAddress).transferFrom(address(this), receiver, amount);
+        IERC20(tokenAddress).transferFrom(address(this), tokenReceiver, amount);
 
-        emit Unlock(receiver, amount);
+        emit Unlock(tokenReceiver, amount);
         emit MessageReceived(
             messageId,
             sourceChainSelector,
@@ -157,11 +159,11 @@ contract clERC20Proxy_Source is CCIPReceiver, TrustedSender {
         );
     }
 
-    function _encodeMintMessage(address receiver, uint256 amount) internal pure returns (bytes memory) {
-        return abi.encode(receiver, amount);
+    function _encodeMintMessage(address tokenReceiver, uint256 amount) internal pure returns (bytes memory) {
+        return abi.encode(tokenReceiver, amount);
     }
 
-    function _decodeUnlockMessage(bytes memory message) internal pure returns (address receiver, uint256 amount) {
-        (receiver, amount) = abi.decode(message, (address, uint256));
+    function _decodeUnlockMessage(bytes memory message) internal pure returns (address tokenReceiver, uint256 amount) {
+        (tokenReceiver, amount) = abi.decode(message, (address, uint256));
     }
 }
