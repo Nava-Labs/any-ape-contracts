@@ -16,7 +16,7 @@ contract AnyApe_Source is CCIPReceiver, Withdraw {
     uint64 constant SOURCE_CHAIN_SELECTOR = 12532609583862916517; // mumbai
     uint64 constant DEST_CHAIN_SELECTOR = 14767482510784806043; // fuji
 
-    address public receiver;
+    address public anyApeMessageReceiver;
 
     address immutable i_router;
     address immutable i_link;
@@ -74,8 +74,8 @@ contract AnyApe_Source is CCIPReceiver, Withdraw {
 
     receive() external payable {}   
 
-    function updateMsgReceiverAddress(address _receiver) external onlyOwner {
-        receiver = _receiver;
+    function updateMessageReceiverAddress(address _anyApeMessageReceiver) external onlyOwner {
+        anyApeMessageReceiver = _anyApeMessageReceiver;
     }
 
     function listing(address tokenAddress, uint256 tokenId, uint256 _price) external {
@@ -87,7 +87,7 @@ contract AnyApe_Source is CCIPReceiver, Withdraw {
         });
 
         bytes memory data = _encodeListingData(tokenAddress, tokenId);
-        _send(DEST_CHAIN_SELECTOR, data);
+        _sendListingMessage(DEST_CHAIN_SELECTOR, data);
 
         emit Listing(msg.sender, tokenAddress, tokenId, _price);
     }
@@ -103,7 +103,7 @@ contract AnyApe_Source is CCIPReceiver, Withdraw {
         });
 
         bytes memory data = _encodeListingData(tokenAddress, tokenId);
-        _send(DEST_CHAIN_SELECTOR, data);
+        _sendListingMessage(DEST_CHAIN_SELECTOR, data);
 
         emit Sale(SaleType.Native, tokenAddress, msg.sender, detail.listedBy, tokenId, detail.price);
     }
@@ -122,7 +122,7 @@ contract AnyApe_Source is CCIPReceiver, Withdraw {
         IERC721(tokenAddress).safeTransferFrom(address(this), msg.sender, tokenId);
 
         bytes memory data = _encodeListingData(tokenAddress, tokenId);
-        _send(DEST_CHAIN_SELECTOR, data);
+        _sendListingMessage(DEST_CHAIN_SELECTOR, data);
 
         emit Cancel(msg.sender, tokenAddress, tokenId);
     }
@@ -144,12 +144,12 @@ contract AnyApe_Source is CCIPReceiver, Withdraw {
         (tokenAddress, tokenId, detail, ccSale) = abi.decode(data, (address, uint256, ListingDetails, CrossChainSale));
     }
 
-    function _send(
+    function _sendListingMessage(
         uint64 destinationChainSelector,
         bytes memory data
     ) internal returns (bytes32 messageId) {
         Client.EVM2AnyMessage memory message = Client.EVM2AnyMessage({
-            receiver: abi.encode(receiver),
+            receiver: abi.encode(anyApeMessageReceiver),
             data: data,
             tokenAmounts: new Client.EVMTokenAmount[](0),
             extraArgs: "",
