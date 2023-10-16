@@ -148,7 +148,7 @@ contract clERC20Proxy_Source is CCIPReceiver, TrustedSender {
 
         (address tokenReceiver, uint256 amount) = _decodeUnlockMessage(any2EvmMessage.data);
 
-        IERC20(tokenAddress).transferFrom(address(this), tokenReceiver, amount);
+        IERC20(tokenAddress).transfer(tokenReceiver, amount);
 
         emit Unlock(tokenReceiver, amount);
         emit MessageReceived(
