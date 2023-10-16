@@ -8,7 +8,6 @@ contract BridgedApe is clERC20Proxy_Destination {
         string memory name, 
         string memory symbol, 
         address router,
-        address tokenAddress,
         address link
-    ) ERC20(name, symbol) clERC20Proxy_Destination(tokenAddress, router, link) {}
+    ) ERC20(name, symbol) clERC20Proxy_Destination(router, link) {}
 }
