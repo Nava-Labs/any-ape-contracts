@@ -13,7 +13,7 @@ contract DeployAnyApe_Source is Script, CCIPHelper {
 
         (address router, address link, , ) = getConfigFromNetwork(source);
 
-        address APE = 0x6d1566A885AC5c3621FE1Df25E5076f5326E7F69;
+        address APE = 0x30a5bA96c9c9cA1F091CC7DC9c9701C176b109a1;
 
         AnyApe_Source _anyApe = new AnyApe_Source(
             router,
@@ -39,7 +39,7 @@ contract DeployAnyApe_Destination is Script, CCIPHelper {
 
         (address router, address link, , ) = getConfigFromNetwork(source);
 
-        address APE = 0x294bb4c48F762DC0AFfe9DA653E9C6E1A4011452;
+        address APE = 0xB187bA0d97A1d0b00310ce1418BBDe9C7690b001;
 
         AnyApe_Destination _anyApe = new AnyApe_Destination(
             router,
