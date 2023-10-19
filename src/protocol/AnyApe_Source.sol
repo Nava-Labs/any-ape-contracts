@@ -167,12 +167,13 @@ contract AnyApe_Source is CCIPReceiver, Withdraw {
     function _ccipReceive(
         Client.Any2EVMMessage memory message
     ) internal override {
-        (address tokenAddress, uint256 tokenId, ListingDetails memory detail, CrossChainSale memory ccSale) = _decodeCrossChainBuy(message.data);
+        (address tokenAddress, uint256 tokenId, ListingDetails memory newDetail, CrossChainSale memory ccSale) = _decodeCrossChainBuy(message.data);
 
-        _listingDetails[tokenAddress][tokenId] = detail;
+        ListingDetails memory prevListingDetail = _listingDetails[tokenAddress][tokenId]; 
+        _listingDetails[tokenAddress][tokenId] = newDetail;
         IERC721(tokenAddress).safeTransferFrom(address(this), ccSale.newOwner, tokenId);
             
-        emit Sale(SaleType.CrossChain, tokenAddress, ccSale.newOwner, detail.listedBy, tokenId, detail.price);
+        emit Sale(SaleType.CrossChain, tokenAddress, ccSale.newOwner, prevListingDetail.listedBy, tokenId, prevListingDetail.price);
         emit MessageReceived(message.messageId, message.data);
     }
 
