@@ -17,7 +17,7 @@ ERC20 Proxy for manage cross-chain tokens within CCIP, this segment consists of 
 #### **Token Proxy Flows Diagram**
 ![Token Proxy Architecture](asset/TokenProxy.svg)
 
-\
+
 
 *Diagram illustrating processes of the token proxy.*
 
@@ -44,7 +44,7 @@ This mode enables users to procure the NFT on the source chain using that chain'
 #### **Native Sale Flow Diagram**
 ![Native Sale Flow](asset/NativeSale.svg)
 
-\
+
 
 *Diagram showcasing the flow of a direct sale within the marketplace.*
 
@@ -54,7 +54,7 @@ This mode empowers users to purchase NFTs using tokens from a chain different fr
 #### **Cross Chain Sale Flow Diagram**
 ![Cross Chain Sale Flow](asset/CrossChainSale.svg)
 
-\
+
 
 *Diagram detailing the flow of a cross-chain sale in the marketplace.*
 
