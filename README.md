@@ -15,7 +15,7 @@ ERC20 Proxy for manage cross-chain tokens within CCIP, this segment consists of 
 - **Purpose**: This needs to be deployed on each destination blockchain where you desire the token's presence. As a result, the token becomes available on other blockchains, in this case represented as $BAPE (Bridged APE).
 
 #### **Token Proxy Flows Diagram**
-![Token Proxy Architecture](asset/TokenProxy.png)
+![Token Proxy Architecture](asset/TokenProxy.svg)
 
 
 
@@ -42,7 +42,7 @@ NFTs can be sold using two methods:
 This mode enables users to procure the NFT on the source chain using that chain's inherent token. For instance, an NFT on Mumbai could be bought using $BAPE Mumbai.
 
 #### **Native Sale Flow Diagram**
-![Native Sale Flow](asset/NativeSale.png)
+![Native Sale Flow](asset/NativeSale.svg)
 
 
 
@@ -52,7 +52,7 @@ This mode enables users to procure the NFT on the source chain using that chain'
 This mode empowers users to purchase NFTs using tokens from a chain different from the source. As an illustrative example, an NFT from Mumbai can be acquired using $BAPE from Fuji. This cross-chain capability is a direct benefit of the token proxy. The underlying mechanism involves burning the Fuji-based $BAPE and minting an equal volume to the seller's wallet in $BAPE Mumbai.
 
 #### **Cross Chain Sale Flow Diagram**
-![Cross Chain Sale Flow](asset/CrossChainSale.png)
+![Cross Chain Sale Flow](asset/CrossChainSale.svg)
 
 
 
